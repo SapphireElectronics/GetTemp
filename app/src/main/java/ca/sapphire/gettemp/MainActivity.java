@@ -18,15 +18,25 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.GridView;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "GetTemp";
 
     Handler recordHandler = new Handler();
     Handler playHandler = new Handler();
+
+    WaveView waveView = null;
+
+    private int bufSize = 32768;
+//    private ByteBuffer buffer = ByteBuffer.allocate( 32768 );
+
+    private short[] buffer = new short[bufSize];
 
     int status;
 
@@ -80,67 +90,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private static final String TAG = "GetTemp";
-    private static String mFileName = null;
-
-//    private RecordButton mRecordButton = null;
-//    private MediaRecorder mRecorder = null;
 
     private AudioRecord mRecorder = null;
-
-//    private PlayButton   mPlayButton = null;
-//    private MediaPlayer   mPlayer = null;
 
     private AudioTrack mPlayer = null;
 
 
     private void startPlaying() {
         mPlayer = new AudioTrack( AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufSize, AudioTrack.MODE_STATIC );
+//        buffer.rewind();
+//        status = mPlayer.write( buffer, bufSize, AudioTrack.WRITE_NON_BLOCKING );
         status = mPlayer.write( buffer, 0, bufSize );
         Log.i( TAG, "\nPlay write status = " + status );
         mPlayer.play();
-
-//        mPlayer = new MediaPlayer();
-//        try {
-//            mPlayer.setDataSource(mFileName);
-//            mPlayer.prepare();
-//            mPlayer.start();
-//        } catch (IOException e) {
-//            Log.e(LOG_TAG, "prepare() failed");
-//        }
     }
 
     private void stopPlaying() {
         mPlayer.release();
         mPlayer = null;
+
+        waveView = new WaveView( this, buffer, 4096, 400 );
+        setContentView(waveView);
+        waveView.invalidate();
+
+
     }
 
-    private int bufSize;
-    private byte[] buffer = null;
-
     private void startRecording() {
-        bufSize = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        bufSize = 32768;
-        Log.i( TAG, "\nBufsize = " + bufSize );
-        buffer = new byte[bufSize];
+//        bufSize = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        Log.i(TAG, "\nBufsize = " + bufSize);
+//        buffer = new byte[bufSize];
+
         mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC,44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufSize);
         mRecorder.startRecording();
-
-//        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-//        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-//        mRecorder.setOutputFile(mFileName);
-//        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-
-//        try {
-//            mRecorder.prepare();
-//        } catch (IOException e) {
-//            Log.e(LOG_TAG, "prepare() failed");
-//        }
-
-//        mRecorder.start();
     }
 
     private void stopRecording() {
+//        status = mRecorder.read(buffer, bufSize);
         status = mRecorder.read(buffer, 0, bufSize);
         Log.i( TAG, "\nRecord read status = " + status);
         mRecorder.stop();
@@ -161,5 +147,4 @@ public class MainActivity extends AppCompatActivity {
             stopPlaying();
         }
     };
-
 }
