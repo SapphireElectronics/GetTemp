@@ -5,76 +5,151 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.ShapeDrawable;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 
 /**
  * Created by apreston on 7/13/2015.
  */
 public class WaveView extends View {
-    private ShapeDrawable mDrawable;
+
+    public String TAG = "WaveView";
+
+//    private ShapeDrawable mDrawable;
     Paint paint = new Paint();
 
     short[] wave;
-    int start, size;
+    int start, size, length;
+
+    float startX, startY, endX, endY;
+    int scroll = 0;
+    int zoom = 0;
+    int pan = 0;
+
+    int gain = 20;
+    int ofs = 0;
+    int autoRange = 0;
+    boolean hasBeenAutoranged = false;
 
     public WaveView(Context context, short[] wave, int start, int size) {
         super(context);
         this.wave = wave;
         this.start = start;
         this.size = size;
+        this.length = wave.length;
+
+        this.setOnTouchListener(new View.OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+
+                if(event.getAction() == MotionEvent.ACTION_DOWN)
+                {
+                    startX = event.getRawX();
+                    startY = event.getRawY();
+                }
+
+                if(event.getAction() == MotionEvent.ACTION_UP)
+                {
+                    endX = event.getRawX();
+                    endY = event.getRawY();
+
+                    pan = -( (int)(endX-startX) ) / 100;
+                    zoom = +( (int) (endY-startY) ) / 100;
+
+//                    if( scroll == 0 && zoom == 0 ) {
+//                        if( startX < 100 )
+//                            pan = -1;
+//                        if( startX > 100 )
+//                            pan = 1;
+//                    }
+
+                    v.invalidate();
+                    // Do what you want
+                    return true;
+                }
+                return true;
+            }
+            // Implementation;
+        });
+
+//        addListenerTouch(this);
+
     }
 
+//    public void addListenerTouch( View v ) {
+//        this.setOnTouchListener() {
+//            @Override
+//                    public void onTouch( View v, MotionEvent me) {
+//
+//            }
+//
+//        };
+//    }
+
     protected void onDraw(Canvas canvas) {
-        paint.setColor(Color.RED);
+        int width = canvas.getWidth();
+        int height = canvas.getHeight();
 
-        canvas.drawLine(0, 0, 100, 100, paint);
-        canvas.drawLine(0, 100, 100, 0, paint);
-
+        if( !hasBeenAutoranged )
+            autoRange( height );
 
         paint.setColor(Color.BLUE);
 
+        if( pan != 0 ) {
+            ofs += pan * width/2;
+            if( ofs < 0 ) ofs = 0;
+            if( ofs > (length-width) ) ofs = length-width;
+        }
+
+        if( zoom != 0 ) {
+            gain += zoom;
+            if( gain < 1 ) gain = 1;
+            if( gain > 40 ) gain = 40;
+        }
+
+        pan = zoom = 0;
+
+        drawRegion( canvas, ofs, width, gain, 1, 0, height/2 );
+
+//        drawRegion( canvas, ofs     , 400, gain, 1, 0, 100 );
+//        drawRegion( canvas, ofs+ 400, 400, gain, 1, 0, 200 );
+//        drawRegion( canvas, ofs+ 800, 400, gain, 1, 0, 300 );
+//        drawRegion( canvas, ofs+1200, 400, gain, 1, 0, 400 );
+//        drawRegion( canvas, ofs+1600, 400, gain, 1, 0, 500 );
+//        drawRegion( canvas, ofs+2000, 400, gain, 1, 0, 600 );
+//        drawRegion( canvas, ofs+2400, 400, gain, 1, 0, 700 );
+    }
+
+    public void autoRange( int height ) {
+        short minX = 0, maxX = 0, element;
+
+        for (int i = 0; i < wave.length; i++) {
+            element = wave[i];
+            maxX = element > maxX ? element : maxX;
+            minX = element < minX ? element : minX;
+        }
+
+        autoRange = maxX > (-minX) ? maxX : -minX;
+
+        gain = autoRange > (height/2) ? autoRange / (height/2) : 1;
+
+        hasBeenAutoranged = true;
+    }
+
+    public void drawRegion( Canvas canvas, int startIndex, int length, int gain, int zoom, int xOffset, int yOffset ) {
+        int x, newX;
         int y, newY;
 
-        y = (wave[start]/20) + 100;
-        for (int x = 1; x < size; x++) {
-            newY = (wave[start+x]/20)+ 100;
-            canvas.drawLine( x-1, y, x, newY, paint );
-            y = newY;
-        }
-        y = (wave[start+400]/20) + 200;
-        for (int x = 0; x < size; x++) {
-            newY = (wave[start+400+x]/20)+ 200;
-            canvas.drawLine( x-1, y, x, newY, paint );
-            y = newY;
-        }
-        y = (wave[start+800]/20) + 300;
-        for (int x = 0; x < size; x++) {
-            newY = (wave[start+800+x]/20)+ 300;
-            canvas.drawLine( x-1, y, x, newY, paint );
-            y = newY;
-        }
-        y = (wave[start+1200]/20) + 400;
-        for (int x = 0; x < size; x++) {
-            newY = (wave[start+1200+x]/20)+ 400;
-            canvas.drawLine( x-1, y, x, newY, paint );
-            y = newY;
-        }
-        y = (wave[start+1600]/20) + 500;
-        for (int x = 0; x < size; x++) {
-            newY = (wave[start+1600+x]/20)+ 500;
-            canvas.drawLine( x-1, y, x, newY, paint );
-            y = newY;
-        }
-        y = (wave[start+2000]/20) + 600;
-        for (int x = 0; x < size; x++) {
-            newY = (wave[start+x+2000]/20)+ 600;
-            canvas.drawLine( x-1, y, x, newY, paint );
-            y = newY;
-        }
-        y = (wave[start+2400]/20) + 700;
-        for (int x = 0; x < size; x++) {
-            newY = (wave[start+2400+x]/20)+ 700;
-            canvas.drawLine( x-1, y, x, newY, paint );
+        x = xOffset;
+        y = wave[startIndex]/gain + yOffset;
+
+        for (int i = startIndex+1; i < startIndex+length ; i+=zoom ) {
+            newX = x+1;
+            newY = (wave[i]/gain) + yOffset;
+            canvas.drawLine( x, y, newX, newY, paint );
+            x = newX;
             y = newY;
         }
     }

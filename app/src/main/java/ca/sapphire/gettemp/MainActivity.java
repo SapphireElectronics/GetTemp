@@ -2,6 +2,7 @@ package ca.sapphire.gettemp;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -33,12 +34,12 @@ public class MainActivity extends AppCompatActivity {
 
     WaveView waveView = null;
 
-    private int bufSize = 32768;
+
+    int status;    private int bufSize = 32768;
 //    private ByteBuffer buffer = ByteBuffer.allocate( 32768 );
 
     private short[] buffer = new short[bufSize];
 
-    int status;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +90,11 @@ public class MainActivity extends AppCompatActivity {
         playHandler.postDelayed(playRunnable, 500);
     }
 
+    public void wave(View v) {
+        Intent intent = new Intent( this, WaveViewActivity.class );
+        intent.putExtra( "wave", buffer );
+        startActivity( intent );
+    }
 
 
     private AudioRecord mRecorder = null;
@@ -109,9 +115,10 @@ public class MainActivity extends AppCompatActivity {
         mPlayer.release();
         mPlayer = null;
 
-        waveView = new WaveView( this, buffer, 4096, 400 );
-        setContentView(waveView);
-        waveView.invalidate();
+
+//        waveView = new WaveView( this, buffer, 4096, 400 );
+//        setContentView(waveView);
+//        waveView.invalidate();
 
 
     }

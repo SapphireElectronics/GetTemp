@@ -18,7 +18,7 @@
 
     <Button
         android:id="@+id/CalibrateButton"
-        android:text="Calibrate"
+        android:text="Cal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="calibrate"
@@ -34,6 +34,14 @@
         android:layout_toRightOf="@id/CalibrateButton"
         />
 
+    <Button
+        android:id="@+id/WaveButton"
+        android:text="Wave"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="wave"
+        android:layout_toRightOf="@id/PlayButton"
+        />
     <TextView
         android:id="@+id/ValueText"
         android:text="--"
