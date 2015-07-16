@@ -115,7 +115,8 @@ public class WaveView extends View {
         drawThumbnail( canvas, 100, 100 );
 
         paint.setColor(Color.BLUE);
-        drawRegion(canvas, ofs, width, gain, 1, 0, height / 2);
+        drawRegion(canvas, 8820, width, gain, 1, 0, height / 2);
+//        drawRegion(canvas, ofs, width, gain, 1, 0, height / 2);
   }
 
     public void autoRange( int height ) {

@@ -26,6 +26,8 @@ import android.widget.TextView;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import static java.lang.System.arraycopy;
+
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "GetTemp";
@@ -52,8 +54,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         valueText = (TextView) findViewById(R.id.ValueText);
-        makeTone( 1000, 44100, 1.0 );
-
+//        makeTone( 1000, 44100, 1.0 );
+        makeSplitTone(1000, 44100, 1.0);
+        Log.i( TAG, "\nMinBufferSize = " + AudioTrack.getMinBufferSize( 44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT ) );
     }
 
     @Override
@@ -84,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 //        recordHandler.postDelayed(recordRunnable, 400);
 //        tone.startTone(ToneGenerator.TONE_CDMA_NETWORK_CALLWAITING);
         startMeasuring();
-        measureHandler.postDelayed(measureRunnable, 1000);
+//        measureHandler.postDelayed(measureRunnable, 3000);
 
     }
 
@@ -127,6 +130,55 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Calculates the current value using split tone.
+     * Evaluates relative amplitudes of signals separately from LH and RH tones
+     * TODO: put in a marker as LH and RH get lost on a mono input.
+     */
+    public void splitCalculate() {
+        int scan = 8820;    // start looking for a zero crossing at 200mS into the waveform.
+
+        if( tone[scan] < 0) // look for zero cross
+            while( buffer[++scan] < 0);
+        else
+            while( buffer[++scan] >= 0);
+
+        Log.i(TAG, "\nZero:" + scan);
+
+        int minA = Short.MAX_VALUE;
+        int maxA = Short.MIN_VALUE;
+        int minB = Short.MAX_VALUE;
+        int maxB = Short.MIN_VALUE;
+
+        // scan first 1kHz period for peaks.
+        for (int i = scan; i < scan+44; i++) {
+            minA = Math.min( minA, buffer[i] );
+            maxA = Math.max( maxA, buffer[i] );
+        }
+
+        // scan second 1kHz period for peaks.
+        for (int i = scan+44; i < scan+88; i++) {
+            minB = Math.min( minB, buffer[i] );
+            maxB = Math.max( maxB, buffer[i] );
+        }
+
+//        value = (float) (maxA-minA) / (float) (maxB-minB);
+        value = (float) (maxA) / (float) (maxB);
+        if( value < 1) value = 1/value;
+
+        float valb = (float)(minA) / (float)(minB);
+        if( valb < 1 ) valb = 1/valb;
+
+        valueText.setText("Value = " + value + " : " + valb);
+
+        Log.i(TAG, "\nMaxA:" + maxA);
+        Log.i(TAG, "\nMinA:" + minA);
+        Log.i(TAG, "\nMaxB:" + maxB);
+        Log.i(TAG, "\nMinB:" + minB);
+        Log.i(TAG, "\nValue:" + value);
+
+    }
+    
     /**
      * Calibrates the system using a previously recorded sample
      * Valid range is considered starting at 200mS for 100mS in length
@@ -186,16 +238,17 @@ public class MainActivity extends AppCompatActivity {
     AutomaticGainControl agc = null;
 
     private void startMeasuring() {
-        mPlayer = new AudioTrack( AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufSize, AudioTrack.MODE_STATIC );
-//        buffer.rewind();
-//        status = mPlayer.write( buffer, bufSize, AudioTrack.WRITE_NON_BLOCKING );
-        status = mPlayer.write( tone, 0, tone.length );
-        Log.i( TAG, "\nMeasure write status = " + status );
+//        mPlayer = new AudioTrack( AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT, bufSize, AudioTrack.MODE_STATIC );
+//        mPlayer.setLoopPoints( 0, 4400, -1 );
+//        status = mPlayer.write( tone, 0, 8192 );
+//        Log.i( TAG, "\nMeasure write status = " + status );
 
         startRecording();
         recordHandler.postDelayed(recordRunnable, 1000);
 
-        mPlayer.play();
+//        mPlayer.play();
+        PlayLoopedSound playTone = new PlayLoopedSound();
+        playTone.execute().getStatus();
     }
 
     private void stopMeasuring() {
@@ -230,7 +283,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             stopRecording();
-            calculate();
+//            calculate();
+            splitCalculate();
         }
     };
 
@@ -262,6 +316,7 @@ public class MainActivity extends AppCompatActivity {
         // fill out one waveform in the array
         int samples = (int) (sampleRate/frequency);
 
+        int k = 0;
         for (int i = 0; i < period; i++) {
             tone[i] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
         }
@@ -272,6 +327,34 @@ public class MainActivity extends AppCompatActivity {
             for (int j = 0; j < period; j++) {
                 tone[offset + j] = tone[j];
             }
+        }
+    }
+    public void makeSplitTone( double frequency, int sampleRate, double duration ) {
+        // number of samples in one wavelength = period = 1/f * samplerate
+        int period = (int) (sampleRate / frequency);
+
+        // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
+        int waves = (int) (duration * frequency);
+        waves &= 0xfffc;    // make waves a multiple of 4
+
+        tone = new short[period * waves * 2];
+
+        // fill out one waveform in the array
+        int samples = (int) (sampleRate/frequency);
+
+        // first wave is Left Hand
+        int lh = 0;
+        int rh = period*2;
+        for (int i = 0; i < period; i++) {
+            tone[rh++] = 0;
+            tone[lh] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
+            tone[rh++] = tone[lh++];
+            tone[lh++] = 0;
+        }
+
+        // fill out rest of the array
+        for (int i = 1; i < waves/2; ++i) {
+            arraycopy( tone, 0, tone, i*period*4, period*4 );
         }
     }
 
