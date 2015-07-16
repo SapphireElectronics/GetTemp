@@ -92,10 +92,10 @@ public class WaveView extends View {
         int width = canvas.getWidth();
         int height = canvas.getHeight();
 
-        if( !hasBeenAutoranged )
-            autoRange( height );
-
-        paint.setColor(Color.BLUE);
+        if( !hasBeenAutoranged ) {
+            autoRange(height);
+            thumbnail(300, 100);
+        }
 
         if( pan != 0 ) {
             ofs += pan * width/2;
@@ -106,24 +106,21 @@ public class WaveView extends View {
         if( zoom != 0 ) {
             gain += zoom;
             if( gain < 1 ) gain = 1;
-            if( gain > 40 ) gain = 40;
+            if( gain > 200 ) gain = 200;
         }
 
         pan = zoom = 0;
 
-        drawRegion( canvas, ofs, width, gain, 1, 0, height/2 );
+        paint.setColor(Color.RED);
+        drawThumbnail( canvas, 100, 100 );
 
-//        drawRegion( canvas, ofs     , 400, gain, 1, 0, 100 );
-//        drawRegion( canvas, ofs+ 400, 400, gain, 1, 0, 200 );
-//        drawRegion( canvas, ofs+ 800, 400, gain, 1, 0, 300 );
-//        drawRegion( canvas, ofs+1200, 400, gain, 1, 0, 400 );
-//        drawRegion( canvas, ofs+1600, 400, gain, 1, 0, 500 );
-//        drawRegion( canvas, ofs+2000, 400, gain, 1, 0, 600 );
-//        drawRegion( canvas, ofs+2400, 400, gain, 1, 0, 700 );
-    }
+        paint.setColor(Color.BLUE);
+        drawRegion(canvas, ofs, width, gain, 1, 0, height / 2);
+  }
 
     public void autoRange( int height ) {
-        short minX = 0, maxX = 0, element;
+        short minX = 0, maxX = 0;
+        short element;
 
         for (int i = 0; i < wave.length; i++) {
             element = wave[i];
@@ -136,7 +133,36 @@ public class WaveView extends View {
         gain = autoRange > (height/2) ? autoRange / (height/2) : 1;
 
         hasBeenAutoranged = true;
+
+        Log.i( TAG, "Autorage: " + gain );
     }
+
+    /**
+     *
+     * @param width
+     * @param height
+     */
+
+    byte[] thumbnail;
+
+    public void thumbnail( int width, int height ) {
+        int skip = wave.length/width;
+        int element = 0;
+        int divider = 65536 / height;
+        thumbnail = new byte[width];
+
+        for (int i = 0; i < width; i++) {
+            thumbnail[i] = (byte) (wave[element] / divider);
+            element += skip;
+        }
+    }
+
+    public void drawThumbnail( Canvas canvas, int x, int y ) {
+        for (int i = 1; i < thumbnail.length; i++) {
+            canvas.drawLine( x+i-1, y+thumbnail[i-1], x+i, y+thumbnail[i], paint );
+        }
+    }
+
 
     public void drawRegion( Canvas canvas, int startIndex, int length, int gain, int zoom, int xOffset, int yOffset ) {
         int x, newX;
