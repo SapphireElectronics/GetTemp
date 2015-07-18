@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    // invoked when Measure/Stop button is clicked
     public void measure(View v) {
         if( !measuring ) {
             mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufSize);
@@ -244,8 +245,6 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-
-
     private class PlayLoopedSound extends AsyncTask<Void, Void, Void> {
 
         AudioTrack track;
@@ -255,6 +254,7 @@ public class MainActivity extends AppCompatActivity {
             track = new AudioTrack(AudioManager.STREAM_MUSIC, 44100,
                     AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
                     tone.length, AudioTrack.MODE_STREAM);
+            track.write(tone, 0, tone.length);
             track.play();
             loopedToneIsRunning = true;
         }
@@ -268,6 +268,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute( Void result ) {
+            track.pause();
+            track.flush();
+            track.release();
             loopedToneIsRunning = false;
         }
     }
