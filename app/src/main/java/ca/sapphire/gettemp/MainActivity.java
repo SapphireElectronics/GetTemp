@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 
+import static ca.sapphire.gettemp.SignalProcess.bubbleSort;
 import static java.lang.System.arraycopy;
 
 public class MainActivity extends AppCompatActivity {
@@ -135,9 +136,8 @@ public class MainActivity extends AppCompatActivity {
      * TODO: put in a marker as LH and RH get lost on a mono input.
      */
     public void splitCalculate() {
-        int scan = 8820;    // start looking for a zero crossing at 200mS into the waveform.
-
-        scan = zeroCross( buffer, 8820, 75 );
+    // start looking for a zero crossing at 200mS into the waveform.
+        int scan = zeroCross( buffer, 8820, 75 );
 
         Log.i(TAG, "\nZero:" + scan);
 
@@ -178,14 +178,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void rmsCalculate() {
-        int scan = 8820;    // start looking for a zero crossing at 200mS into the waveform.
-
-        scan = zeroCross( buffer, 8820, 75 );
-
-//        if (buffer[scan] < 0) // look for zero cross
-//            while (buffer[++scan] < 0) ;
-//        else
-//            while (buffer[++scan] >= 0) ;
+        // start looking for a zero crossing at 200mS into the waveform.
+        int scan = zeroCross( buffer, 8820, 75 );
 
         double[] rmsA = new double[16];
         double[] rmsB = new double[16];
@@ -353,15 +347,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static void bubbleSort(double[] num) {
-        for (int i = 0; i < num.length; i++) {
-            for (int x = 1; x < num.length - i; x++) {
-                if (num[x - 1] > num[x]) {
-                    double temp = num[x - 1];
-                    num[x - 1] = num[x];
-                    num[x] = temp;
-                }
-            }
-        }
-    }
+//    private static void bubbleSort(double[] num) {
+//        for (int i = 0; i < num.length; i++) {
+//            for (int x = 1; x < num.length - i; x++) {
+//                if (num[x - 1] > num[x]) {
+//                    double temp = num[x - 1];
+//                    num[x - 1] = num[x];
+//                    num[x] = temp;
+//                }
+//            }
+//        }
+//    }
 }
