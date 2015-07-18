@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import static ca.sapphire.gettemp.SignalProcess.bubbleSort;
 import static ca.sapphire.gettemp.SignalProcess.rms;
+import static ca.sapphire.gettemp.SignalProcess.zeroCross;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "GetTemp";
@@ -135,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public void splitCalculate() {
     // start looking for a zero crossing at 200mS into the waveform.
-        int scan = zeroCross( buffer, 8820, 75 );
+        int scan = zeroCross( buffer, 8820, 75, 6 );
 
         Log.i(TAG, "\nZero:" + scan);
 
@@ -177,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void rmsCalculate() {
         // start looking for a zero crossing at 200mS into the waveform.
-        int scan = zeroCross( buffer, 8820, 75 );
+        int scan = zeroCross( buffer, 8820, 75, 6 );
 
         double[] rmsA = new double[16];
         double[] rmsB = new double[16];
@@ -269,26 +270,5 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute( Void result ) {
             loopedToneIsRunning = false;
         }
-    }
-
-    public int zeroCross( short[] wave, int index, int wavelength ) {
-        int slope;
-        int maxSlope = 0;
-        int maxSlopeIndex = 0;
-        int start, end;
-
-        // calculate the slope at each point in one wavelength
-        // if this is the maximum slope, the zero cross is 1/2 way along this line
-        for (int i = 0; i < wavelength; i++) {
-            start = wave[i+index];
-            end = wave[i+index+6];
-            if( start<0 && end>0 ) {
-                slope = end-start;
-                if( slope > maxSlope ) {
-                    maxSlopeIndex = i+3;
-                }
-            }
-        }
-        return maxSlopeIndex;
     }
 }

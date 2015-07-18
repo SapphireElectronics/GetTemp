@@ -35,4 +35,33 @@ public final class SignalProcess {
         }
         return Math.sqrt( (double)(sum)/ (double)(length) );
     }
+
+    /**
+     *
+     * @param wave          Waveform to inspect for a zero crossing
+     * @param index         Starting element to examine for a zero cross
+     * @param wavelength    Expected wavelength (distance to search for a zero cross)
+     * @param span          Distance around the element to span when looking for a zero cross.  Use 1/8 to 1/4 wavelength
+     * @return              Index of the value containing the zero crossing point
+     */
+    public static int zeroCross( short[] wave, int index, int wavelength, int span ) {
+        int slope;
+        int maxSlope = 0;
+        int maxSlopeIndex = 0;
+        int start, end;
+
+        // calculate the slope at each point in one wavelength
+        // if this is the maximum slope, the zero cross is 1/2 way along this line
+        for (int i = 0; i < wavelength; i++) {
+            start = wave[i+index];
+            end = wave[i+index+span];
+            if( start<0 && end>0 ) {
+                slope = end-start;
+                if( slope > maxSlope ) {
+                    maxSlopeIndex = i+(span/2);
+                }
+            }
+        }
+        return maxSlopeIndex;
+    }
 }
