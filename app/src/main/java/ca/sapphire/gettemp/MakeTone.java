@@ -1,102 +1,68 @@
-//package ca.sapphire.gettemp;
-//
-///**
-// * Created by Admin on 15/07/15.
-// */
-//public class MakeTone {
-//    // make tone roughly 1/2 second long.
-//
-//    private final int duration = 1; // seconds
-//    private final int sampleRate = 44100;
-//    private final int numSamples = duration * sampleRate;
-//    private final short sample[] = new short[numSamples];
-//
-//    private final byte generatedSnd[] = new byte[2 * numSamples];
-//
-//
-//    public MakeTone( double frequency, int sampleRate ) {
-//        // number of samples in one wavelength = period = 1/f * samplerate
-//        int period = (int) (sampleRate / frequency);
-//
-//        // number of wavelengths for 1/2 second of tone frequency = 0.5 * frequency
-//        int waves = (int) (0.5 * frequency);
-//
-//        double element;
-//
-//        // fill out the array
-//        int samples = (int) (sampleRate/frequency);
-//
-//        for (int i = 0; i < period; i++) {
-//            sample[i] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
-//        }
-//
-//        for (int i = 0; i < waves; ++i) {
-//            int offset = i * period;
-//            for (int j = 0; j < period; j++) {
-//                sample[offset + j] = sample[j];
-//            }
-//        }
-//    }
-//}
-//
-//
-//
-//public class PlaySound extends Activity {
-//    // originally from http://marblemice.blogspot.com/2010/04/generate-and-play-tone-in-android.html
-//    // and modified by Steve Pomeroy <steve@staticfree.info>
-//    private final int duration = 3; // seconds
-//    private final int sampleRate = 8000;
-//    private final int numSamples = duration * sampleRate;
-//    private final double sample[] = new double[numSamples];
-//    private final double freqOfTone = 440; // hz
-//
-//    private final byte generatedSnd[] = new byte[2 * numSamples];
-//
-//
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//
-//        // Use a new tread as this can take a while
-//        final Thread thread = new Thread(new Runnable() {
-//            public void run() {
-//                genTone();
-//                handler.post(new Runnable() {
-//
-//                    public void run() {
-//                        playSound();
-//                    }
-//                });
-//            }
-//        });
-//        thread.start();
-//    }
-//
-//    void genTone(){
-//        // fill out the array
-//        for (int i = 0; i < numSamples; ++i) {
-//            sample[i] = Math.sin(2 * Math.PI * i / (sampleRate/freqOfTone));
-//        }
-//
-//        // convert to 16 bit pcm sound array
-//        // assumes the sample buffer is normalised.
-//        int idx = 0;
-//        for (final double dVal : sample) {
-//            // scale to maximum amplitude
-//            final short val = (short) ((dVal * 32767));
-//            // in 16 bit wav PCM, first byte is the low order byte
-//            generatedSnd[idx++] = (byte) (val & 0x00ff);
-//            generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
-//
-//        }
-//    }
-//
-//    void playSound(){
-//        final AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
-//                sampleRate, AudioFormat.CHANNEL_OUT_MONO,
-//                AudioFormat.ENCODING_PCM_16BIT, generatedSnd.length,
-//                AudioTrack.MODE_STATIC);
-//        audioTrack.write(generatedSnd, 0, generatedSnd.length);
-//        audioTrack.play();
-//    }
-//}
+package ca.sapphire.gettemp;
+
+import static java.lang.System.arraycopy;
+
+/**
+ *
+ */
+public final class MakeTone {
+
+    /**
+     *
+     * @param tone          Empty array to place tone into
+     * @param frequency     Frequency of tone
+     * @param sampleRate    Sample rate used when playing tone (use 44100)
+     * @param duration      Duration of tone
+     */
+    public static void makeTone(short tone[], double frequency, int sampleRate, double duration) {
+        // number of samples in one wavelength = period = 1/f * samplerate
+        int period = (int) (sampleRate / frequency);
+
+        // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
+        int waves = (int) (duration * frequency);
+
+        tone = new short[period * waves];
+
+        for (int i = 0; i < period; i++) {
+            tone[i] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
+        }
+
+        // fill out rest of the array
+        for (int i = 0; i < waves; ++i) {
+            arraycopy(tone, 0, tone, i * period, period);
+        }
+    }
+
+    /**
+     *
+     * @param tone          Empty array to place tone into
+     * @param frequency     Frequency of generated tone
+     * @param sampleRate    Sampling rate used when playing tone (use 44100)
+     * @param duration      Duration of generated tone
+     */
+    public static void makeSplitTone(short tone[], double frequency, int sampleRate, double duration) {
+        // number of samples in one wavelength = period = 1/f * samplerate
+        int period = (int) (sampleRate / frequency);
+
+        // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
+        int waves = (int) (duration * frequency);
+        waves &= 0xfffc;    // make waves a multiple of 4
+
+        tone = new short[period * waves * 2];
+
+        // first wave is Left Hand
+        int lh = 0;
+        int rh = period * 2;
+        for (int i = 0; i < period; i++) {
+            tone[rh++] = 0;
+            tone[lh] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
+            tone[rh++] = tone[lh++];
+            tone[lh++] = 0;
+        }
+
+        // fill out rest of the array
+        for (int i = 1; i < waves / 2; ++i) {
+            arraycopy(tone, 0, tone, i * period * 4, period * 4);
+        }
+    }
+}
