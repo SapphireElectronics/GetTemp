@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         valueText = (TextView) findViewById(R.id.ValueText);
         measureButton = (Button) findViewById(R.id.MeasureButton );
-        MakeTone.makeSplitTone(tone, 900, 44100, 1.0);
+        tone = MakeTone.makeSplitTone(900, 44100, 1.0);
 //        Log.i(TAG, "\nMinBufferSize = " + AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT));
     }
 

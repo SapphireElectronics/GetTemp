@@ -9,19 +9,18 @@ public final class MakeTone {
 
     /**
      *
-     * @param tone          Empty array to place tone into
      * @param frequency     Frequency of tone
      * @param sampleRate    Sample rate used when playing tone (use 44100)
      * @param duration      Duration of tone
      */
-    public static void makeTone(short tone[], double frequency, int sampleRate, double duration) {
+    public static short[] makeTone(double frequency, int sampleRate, double duration) {
         // number of samples in one wavelength = period = 1/f * samplerate
         int period = (int) (sampleRate / frequency);
 
         // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
         int waves = (int) (duration * frequency);
 
-        tone = new short[period * waves];
+        short[] tone = new short[period * waves];
 
         for (int i = 0; i < period; i++) {
             tone[i] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
@@ -31,16 +30,17 @@ public final class MakeTone {
         for (int i = 0; i < waves; ++i) {
             arraycopy(tone, 0, tone, i * period, period);
         }
+
+        return tone;
     }
 
     /**
      *
-     * @param tone          Empty array to place tone into
      * @param frequency     Frequency of generated tone
      * @param sampleRate    Sampling rate used when playing tone (use 44100)
      * @param duration      Duration of generated tone
      */
-    public static void makeSplitTone(short tone[], double frequency, int sampleRate, double duration) {
+    public static short[] makeSplitTone(double frequency, int sampleRate, double duration) {
         // number of samples in one wavelength = period = 1/f * samplerate
         int period = (int) (sampleRate / frequency);
 
@@ -48,7 +48,7 @@ public final class MakeTone {
         int waves = (int) (duration * frequency);
         waves &= 0xfffc;    // make waves a multiple of 4
 
-        tone = new short[period * waves * 2];
+        short[] tone = new short[period * waves * 2];
 
         // first wave is Left Hand
         int lh = 0;
@@ -64,5 +64,6 @@ public final class MakeTone {
         for (int i = 1; i < waves / 2; ++i) {
             arraycopy(tone, 0, tone, i * period * 4, period * 4);
         }
+        return tone;
     }
 }
