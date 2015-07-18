@@ -20,4 +20,19 @@ public final class SignalProcess {
             }
         }
     }
+
+    /**
+     *
+     * @param wave      Waveform to calculate RMS value for
+     * @param start     Starting element in waveform
+     * @param length    Number of elements in the RMS calculation
+     * @return          The RMS value.
+     */
+    public static double rms( short[] wave, int start, int length ) {
+        long sum = 0;
+        for (int i = start; i < start+length; i++) {
+            sum += (long)wave[i] * (long)wave[i];
+        }
+        return Math.sqrt( (double)(sum)/ (double)(length) );
+    }
 }

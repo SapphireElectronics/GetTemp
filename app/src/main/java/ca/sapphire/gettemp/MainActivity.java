@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import static ca.sapphire.gettemp.SignalProcess.bubbleSort;
+import static ca.sapphire.gettemp.SignalProcess.rms;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "GetTemp";
@@ -290,57 +291,4 @@ public class MainActivity extends AppCompatActivity {
         }
         return maxSlopeIndex;
     }
-
-    public double rms( short[] wave, int start, int length ) {
-        long sum = 0;
-        for (int i = start; i < start+length; i++) {
-            sum += (long)wave[i] * (long)wave[i];
-        }
-        return Math.sqrt( (double)(sum)/ (double)(length) );
-    }
-
-//    public void makeTone(double frequency, int sampleRate, double duration) {
-//        // number of samples in one wavelength = period = 1/f * samplerate
-//        int period = (int) (sampleRate / frequency);
-//
-//        // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
-//        int waves = (int) (duration * frequency);
-//
-//        tone = new short[period * waves];
-//
-//        for (int i = 0; i < period; i++) {
-//            tone[i] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
-//        }
-//
-//        // fill out rest of the array
-//        for (int i = 0; i < waves; ++i) {
-//            arraycopy( tone, 0, tone, i * period, period );
-//        }
-//    }
-//
-//    public void makeSplitTone(double frequency, int sampleRate, double duration) {
-//        // number of samples in one wavelength = period = 1/f * samplerate
-//        int period = (int) (sampleRate / frequency);
-//
-//        // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
-//        int waves = (int) (duration * frequency);
-//        waves &= 0xfffc;    // make waves a multiple of 4
-//
-//        tone = new short[period * waves * 2];
-//
-//        // first wave is Left Hand
-//        int lh = 0;
-//        int rh = period * 2;
-//        for (int i = 0; i < period; i++) {
-//            tone[rh++] = 0;
-//            tone[lh] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
-//            tone[rh++] = tone[lh++];
-//            tone[lh++] = 0;
-//        }
-//
-//        // fill out rest of the array
-//        for (int i = 1; i < waves / 2; ++i) {
-//            arraycopy(tone, 0, tone, i * period * 4, period * 4);
-//        }
-//    }
 }
