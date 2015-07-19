@@ -140,11 +140,7 @@ public final class MakeTone {
             tone[lh++] = 0;
         }
 
-        // next is a silent wavelength
-        for (int i = 0; i < period; i++) {
-            tone[lh++] = tone[lh++] = 0;
-            tone[rh++] = tone[rh++] = 0;
-        }
+        // next is a silent wavelength which we can ignore since defaults values are already 0.
 
         // fill out rest of the array, leaving one wavelength blank
         for (int i = 1; i < waves / 3; ++i) {

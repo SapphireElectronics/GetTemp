@@ -52,7 +52,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         valueText = (TextView) findViewById(R.id.ValueText);
         measureButton = (Button) findViewById(R.id.MeasureButton );
-        tone = MakeTone.makeSplitTone(900, 44100, 1.0);
+        measureButton.setText("Measure");
+
+        tone = MakeTone.makeTernaryTone(900, 44100, 1.0);
 //        Log.i(TAG, "\nMinBufferSize = " + AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT));
     }
 
@@ -78,6 +80,24 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onPause() {
+        stopMeasuring();
+        super.onPause();
+    }
+
+    // called both when the Measure/Stop button is pressed and when Activity is paused
+    public void stopMeasuring() {
+        measuring = false;
+
+        measureHandler.removeCallbacks(measureRunnable);
+        loopedToneIsRunning = false;
+
+        mRecorder.stop();
+        mRecorder.release();
+        mRecorder = null;
+    }
+
     // invoked when Measure/Stop button is clicked
     public void measure(View v) {
         if( !measuring ) {
@@ -95,15 +115,8 @@ public class MainActivity extends AppCompatActivity {
             measureHandler.postDelayed(measureRunnable, 500);
         }
         else {
-            measuring = false;
             measureButton.setText("Measure");
-
-            measureHandler.removeCallbacks(measureRunnable);
-            loopedToneIsRunning = false;
-
-            mRecorder.stop();
-            mRecorder.release();
-            mRecorder = null;
+            stopMeasuring();
         }
     }
 
@@ -178,19 +191,47 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void rmsCalculate() {
-        // start looking for a zero crossing at 200mS into the waveform.
-        int scan = zeroCross( buffer, 8820, 75, 6 );
+        // start looking for a zero crossing at 100mS into the waveform.
+        // search 3 wavelengths to look for a good crossing
+        int scan = zeroCross( buffer, 4410, 49*3, 6 );
 
         double[] rmsA = new double[16];
         double[] rmsB = new double[16];
+        double[] rmsC = new double[16];
 //        rmsA = rms( buffer, scan, 49 );
 //        rmsB = rms( buffer, scan+49, 49 );
 //todo: Replace magic numbers
 
-        for (int i = 0; i < 16; i++) {
-            rmsA[i] = rms( buffer, scan + 49*(i*2), 49 );
-            rmsB[i] = rms( buffer, scan + 49*(i*2+1), 49);
-            Log.i(TAG, "A:B  " + rmsA[i] + " : " + rmsB[i]);
+        rmsA[0] = rms( buffer, scan + 0, 49 );
+        rmsB[0] = rms( buffer, scan + 49, 49);
+        rmsC[0] = rms( buffer, scan + 98, 49);
+
+        Log.i(TAG, "A:B:C  " + rmsA[0] + " : " + rmsB[0] + " : " + rmsC[0]);
+
+        // look for smallest RMS, it is the silent marker portion of the wave
+        if (rmsA[0] < rmsC[0] ) {
+            if( rmsA[0] < rmsB[0] ) {   // A is smallest, therefore B is reference, C is measurement
+                scan += 49;             // Next scan will be the silence, so skip it.
+                rmsA[0] = rmsB[0];      // copy reference and measurement as appropriate
+                rmsB[0] = rmsC[0];
+            }
+            else {                      // B is smallest, therefore C is reference, A is measurement
+                scan += 98;             // Next scan is the measurement, so skip that and the silence
+                rmsB[0] = rmsA[0];      // copy reference and measurement as appropriate
+                rmsA[0] = rmsC[0];
+            }
+        }
+        else {                          // C is smallest, therefore A is reference, B is measurement
+                                        // nothing to do in this case, we're in correct sync
+
+        }
+
+
+        for (int i = 1; i < 16; i++) {
+            rmsA[i] = rms( buffer, scan + 49*(i*3), 49 );
+            rmsB[i] = rms( buffer, scan + 49*(i*3+1), 49);
+            rmsC[i] = rms( buffer, scan + 49*(i*3+2), 49);
+            Log.i(TAG, "A:B:C  " + rmsA[i] + " : " + rmsB[i] + " : " + rmsC[i]);
         }
 
         bubbleSort( rmsA );
@@ -206,8 +247,7 @@ public class MainActivity extends AppCompatActivity {
         rA /= 8;
         rB /= 8;
 
-        value = (float) (rA/rB);
-        if (value < 1) value = 1 / value;
+        value = (float) (rB/rA);
 
         Log.i(TAG, "\nRMS A8:" + rA);
         Log.i(TAG, "\nRMS B8:" + rB);
@@ -267,7 +307,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute( Void result ) {
+        protected void onPostExecute(Void result ) {
             track.pause();
             track.flush();
             track.release();
