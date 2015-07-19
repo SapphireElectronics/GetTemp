@@ -11,6 +11,7 @@ public class WaveViewActivity extends AppCompatActivity {
 
     private int bufSize = 32768;
     private short[] buffer = new short[bufSize];
+    private boolean mode;
 
 
     @Override
@@ -25,12 +26,14 @@ public class WaveViewActivity extends AppCompatActivity {
                 buffer = null;
             } else {
                 buffer = extras.getShortArray("wave");
+                mode = extras.getBoolean("mode");
             }
         } else {
             buffer = (short[]) savedInstanceState.getSerializable("wave");
+            mode = (boolean) savedInstanceState.getSerializable("mode");
         }
 
-        WaveView waveView = new WaveView( this, buffer, 4096, 400 );
+        WaveView waveView = new WaveView( this, buffer, 4096, 400, mode );
         setContentView(waveView);
         waveView.invalidate();
     }

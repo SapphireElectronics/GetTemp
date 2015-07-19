@@ -148,4 +148,50 @@ public final class MakeTone {
         }
         return tone;
     }
+
+    /**
+     * Generates a special purpose sine wave tone
+     *
+     * Generates a stereo sine wave tone at a given frequency, for a given sample rate,
+     * and for a given duration.  The tone alternates between LH and RH and silent.
+     *
+     * The tone generated is in stereo.
+     * The first complete waveform is LH only, the second complete waveform is RH only.
+     * The third complete waveform is silent.
+     * This is repeated for the duration of the tone.
+     *
+     * @param frequency     Frequency of generated tone
+     * @param sampleRate    Sampling rate used when playing tone (typically use 44100)
+     * @param duration      Duration of generated tone
+     */
+    public static short[] makeBurstTone(double frequency, int sampleRate, double duration) {
+        // number of samples in one wavelength = period = 1/f * samplerate
+        int period = (int) (sampleRate / frequency);
+
+        // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
+        int waves = (int) (duration * frequency);
+        waves = (waves/8) * 8;  // make waves a multiple of 6 so playing successive stereo waves is contiguous
+
+        short[] tone = new short[period * waves * 4];
+
+        // first wave is Left Hand, second wave is RH
+        // both are generated together by writing the LH values one full period later to RH
+        // since it is stereo, LH and RH are interleaved, so all calculations double
+        int lh = 0;
+        int rh = period * 2;
+        for (int i = 0; i < period; i++) {
+            tone[rh++] = 0;
+            tone[lh] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
+            tone[rh++] = tone[lh++];
+            tone[lh++] = 0;
+        }
+
+        // next is a silent wavelength which we can ignore since defaults values are already 0.
+
+        // fill out rest of the array, leaving one wavelength blank
+        for (int i = 1; i < waves / 4; ++i) {
+            arraycopy(tone, 0, tone, i*period*8, period*8);
+        }
+        return tone;
+    }
 }

@@ -21,6 +21,7 @@ public class WaveView extends View {
 
     short[] wave;
     int start, size, length;
+    boolean isMono;
 
     float startX, startY, endX, endY;
     int scroll = 0;
@@ -32,11 +33,19 @@ public class WaveView extends View {
     int autoRange = 0;
     boolean hasBeenAutoranged = false;
 
-    public WaveView(Context context, short[] wave, int start, int size) {
+    final static int MONO_TRACK = 2;
+    final static int LEFT_TRACK = 0;
+    final static int RIGHT_TRACK = 1;
+
+    final static boolean MONO_MODE = true;
+    final static boolean STEREO_MODE = false;
+
+    public WaveView(Context context, short[] wave, int start, int size, boolean isMono ) {
         super(context);
         this.wave = wave;
         this.start = start;
         this.size = size;
+        this.isMono = isMono;
         this.length = wave.length;
 
         this.setOnTouchListener(new View.OnTouchListener() {
@@ -44,19 +53,17 @@ public class WaveView extends View {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
 
-                if(event.getAction() == MotionEvent.ACTION_DOWN)
-                {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     startX = event.getRawX();
                     startY = event.getRawY();
                 }
 
-                if(event.getAction() == MotionEvent.ACTION_UP)
-                {
+                if (event.getAction() == MotionEvent.ACTION_UP) {
                     endX = event.getRawX();
                     endY = event.getRawY();
 
-                    pan = -( (int)(endX-startX) ) / 100;
-                    zoom = +( (int) (endY-startY) ) / 100;
+                    pan = -((int) (endX - startX)) / 100;
+                    zoom = +((int) (endY - startY)) / 100;
 
 //                    if( scroll == 0 && zoom == 0 ) {
 //                        if( startX < 100 )
@@ -77,16 +84,6 @@ public class WaveView extends View {
 //        addListenerTouch(this);
 
     }
-
-//    public void addListenerTouch( View v ) {
-//        this.setOnTouchListener() {
-//            @Override
-//                    public void onTouch( View v, MotionEvent me) {
-//
-//            }
-//
-//        };
-//    }
 
     protected void onDraw(Canvas canvas) {
         int width = canvas.getWidth();
@@ -112,11 +109,25 @@ public class WaveView extends View {
         pan = zoom = 0;
 
         paint.setColor(Color.RED);
-        drawThumbnail( canvas, 100, 100 );
+        drawThumbnail(canvas, 100, 100);
 
-        paint.setColor(Color.BLUE);
-        drawRegion(canvas, 8820, width, gain, 1, 0, height / 2);
-//        drawRegion(canvas, ofs, width, gain, 1, 0, height / 2);
+        paint.setColor(Color.DKGRAY);
+        paint.setTextAlign(Paint.Align.LEFT);
+        canvas.drawText(Integer.toString(ofs), 10, height - 50, paint);
+        paint.setTextAlign(Paint.Align.RIGHT);
+        canvas.drawText( Integer.toString(ofs+width), width-10, height-50, paint );
+
+        if( isMono ) {
+            paint.setColor(Color.BLUE);
+            drawRegion(canvas, MONO_TRACK, ofs, width, gain, 1, 0, height / 2);
+        }
+        else {
+            paint.setColor(Color.BLUE);
+            drawRegion(canvas, LEFT_TRACK, ofs, width, gain, 1, 0, height / 2);
+
+            paint.setColor(Color.GREEN);
+            drawRegion(canvas, RIGHT_TRACK, ofs, width, gain, 1, 0, height / 2);
+        }
   }
 
     public void autoRange( int height ) {
@@ -165,19 +176,32 @@ public class WaveView extends View {
     }
 
 
-    public void drawRegion( Canvas canvas, int startIndex, int length, int gain, int zoom, int xOffset, int yOffset ) {
+    public void drawRegion( Canvas canvas, int track, int startIndex, int length, int gain, int zoom, int xOffset, int yOffset ) {
         int x, newX;
         int y, newY;
 
         x = xOffset;
         y = wave[startIndex]/gain + yOffset;
 
-        for (int i = startIndex+1; i < startIndex+length ; i+=zoom ) {
-            newX = x+1;
-            newY = (wave[i]/gain) + yOffset;
-            canvas.drawLine( x, y, newX, newY, paint );
-            x = newX;
-            y = newY;
+        if( track == MONO_TRACK ) {
+            for (int i = startIndex + 1; i < startIndex + length; i += zoom) {
+                newX = x + 1;
+                newY = (wave[i] / gain) + yOffset;
+                canvas.drawLine(x, y, newX, newY, paint);
+                x = newX;
+                y = newY;
+            }
+        }
+        else {
+            x += track;
+            for (int i = startIndex + 2 + track; i < (startIndex+length)*2; i += zoom+zoom) {
+                newX = x + 1;
+                newY = (wave[i] / gain) + yOffset;
+                canvas.drawLine(x, y, newX, newY, paint);
+                x = newX;
+                y = newY;
+            }
         }
     }
+
 }

@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         measureButton = (Button) findViewById(R.id.MeasureButton );
         measureButton.setText("Measure");
 
-        tone = MakeTone.makeTernaryTone(900, 44100, 1.0);
+        tone = MakeTone.makeBurstTone(900, 44100, 1.0);
 //        Log.i(TAG, "\nMinBufferSize = " + AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT));
     }
 
@@ -93,9 +93,11 @@ public class MainActivity extends AppCompatActivity {
         measureHandler.removeCallbacks(measureRunnable);
         loopedToneIsRunning = false;
 
-        mRecorder.stop();
-        mRecorder.release();
-        mRecorder = null;
+        if( mRecorder != null ) {
+            mRecorder.stop();
+            mRecorder.release();
+            mRecorder = null;
+        }
     }
 
     // invoked when Measure/Stop button is clicked
@@ -133,7 +135,13 @@ public class MainActivity extends AppCompatActivity {
     };
 
     public void calibrate(View v) {
-        calibrate();
+        Intent intent = new Intent(this, WaveViewActivity.class);
+        intent.putExtra("wave", tone);
+        intent.putExtra("mode", WaveView.STEREO_MODE);
+        startActivity(intent);
+
+
+//        calibrate();
     }
 
     /**
@@ -202,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
 //        rmsB = rms( buffer, scan+49, 49 );
 //todo: Replace magic numbers
 
-        rmsA[0] = rms( buffer, scan + 0, 49 );
+        rmsA[0] = rms( buffer, scan, 49 );
         rmsB[0] = rms( buffer, scan + 49, 49);
         rmsC[0] = rms( buffer, scan + 98, 49);
 
@@ -221,10 +229,8 @@ public class MainActivity extends AppCompatActivity {
                 rmsA[0] = rmsC[0];
             }
         }
-        else {                          // C is smallest, therefore A is reference, B is measurement
+        // else                         // C is smallest, therefore A is reference, B is measurement
                                         // nothing to do in this case, we're in correct sync
-
-        }
 
 
         for (int i = 1; i < 16; i++) {
@@ -282,6 +288,7 @@ public class MainActivity extends AppCompatActivity {
     public void wave(View v) {
         Intent intent = new Intent(this, WaveViewActivity.class);
         intent.putExtra("wave", buffer);
+        intent.putExtra("mode", WaveView.MONO_MODE);
         startActivity(intent);
     }
 
