@@ -152,11 +152,11 @@ public class MainActivity extends AppCompatActivity {
      * Calculates the current value
      */
     public void splitRangeCalculate() {
-        // start looking for a zero crossing at 100mS into the waveform.
+        // start looking for a zero crossing at 10 periods into the waveform, about 11ms @ 900hz
 
         int[] values = new int[8];
         double value;
-        int scan = zeroCross( buffer, period100ms, 75, 6 );
+        int scan = zeroCross( buffer, wavelength*10, 75, 6 );
 
         markers[0] = period100ms;
         markers[1] = scan;
@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
 
         value = ((double)values[5]+(double)values[6]) / ((double)values[1]+(double)values[2]) ;
 
-        valueText.append("\nVal: " + String.format( "%.2f :  %.2f", value, value*seriesResistorValue));
+        valueText.append("\nVal: " + String.format( "%.2f :  %.2f  :  %.1f'C", value, value*seriesResistorValue, value*Thermistor.temperature(value) ));
         Log.i(TAG, "\nValue:" + value);
     }
 
