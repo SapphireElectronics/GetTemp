@@ -21,6 +21,17 @@ public final class SignalProcess {
         }
     }
 
+    public static void bubbleSort(int[] num) {
+        for (int i = 0; i < num.length; i++) {
+            for (int x = 1; x < num.length - i; x++) {
+                if (num[x - 1] > num[x]) {
+                    int temp = num[x - 1];
+                    num[x - 1] = num[x];
+                    num[x] = temp;
+                }
+            }
+        }
+    }
     /**
      *
      * @param wave      Waveform to calculate RMS value for
@@ -58,7 +69,7 @@ public final class SignalProcess {
             if( start<0 && end>0 ) {
                 slope = end-start;
                 if( slope > maxSlope ) {
-                    maxSlopeIndex = i+(span/2);
+                    maxSlopeIndex = i+(span/2)+index;
                 }
             }
         }

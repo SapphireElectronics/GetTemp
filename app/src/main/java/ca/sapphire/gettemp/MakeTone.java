@@ -88,8 +88,10 @@ public final class MakeTone {
         // both are generated together by writing the LH values one full period later to RH
         // since it is stereo, LH and RH are interleaved, so all calculations double
         int lh = 0;
-        int rh = period * 2;
-        for (int i = 0; i < period; i++) {
+//        int rh = period * 2;
+//        for (int i = 0; i < period; i++) {
+        int rh = period * 8;
+        for (int i = 0; i < period*4; i++) {
             tone[rh++] = 0;
             tone[lh] = (short) ((Math.sin(2 * Math.PI * i / period)) * 32767);
             tone[rh++] = tone[lh++];
@@ -97,8 +99,10 @@ public final class MakeTone {
         }
 
         // fill out rest of the array, making copies of the two wave section
-        for (int i = 1; i < waves / 2; ++i) {
-            arraycopy(tone, 0, tone, i*period*4, period*4);
+        for (int i = 1; i < waves / 8; ++i) {
+            arraycopy(tone, 0, tone, i*period*16, period*16);
+//        for (int i = 1; i < waves / 2; ++i) {
+//            arraycopy(tone, 0, tone, i*period*4, period*4);
         }
         return tone;
     }

@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.ShapeDrawable;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -22,6 +23,7 @@ public class WaveView extends View {
     short[] wave;
     int start, size, length;
     boolean isMono;
+    int[] markers;
 
     float startX, startY, endX, endY;
     int scroll = 0;
@@ -40,13 +42,16 @@ public class WaveView extends View {
     final static boolean MONO_MODE = true;
     final static boolean STEREO_MODE = false;
 
-    public WaveView(Context context, short[] wave, int start, int size, boolean isMono ) {
+    public WaveView(Context context, short[] wave, int start, int size, boolean isMono, int[] markers ) {
         super(context);
         this.wave = wave;
         this.start = start;
         this.size = size;
         this.isMono = isMono;
         this.length = wave.length;
+        this.markers = markers;
+
+        paint.setTextSize( paint.getTextSize() * 2.0f );
 
         this.setOnTouchListener(new View.OnTouchListener() {
 
@@ -108,6 +113,7 @@ public class WaveView extends View {
 
         pan = zoom = 0;
 
+        paint.setStyle( Paint.Style.STROKE );
         paint.setColor(Color.RED);
         drawThumbnail(canvas, 100, 100);
 
@@ -115,7 +121,7 @@ public class WaveView extends View {
         paint.setTextAlign(Paint.Align.LEFT);
         canvas.drawText(Integer.toString(ofs), 10, height - 50, paint);
         paint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText( Integer.toString(ofs+width), width-10, height-50, paint );
+        canvas.drawText(Integer.toString(ofs + width), width - 10, height - 50, paint);
 
         if( isMono ) {
             paint.setColor(Color.BLUE);
@@ -182,6 +188,18 @@ public class WaveView extends View {
                 canvas.drawLine(x, y, newX, newY, paint);
                 x = newX;
                 y = newY;
+            }
+
+            if( markers != null ) {
+                for (int i = 0; i < markers.length; i++) {
+                    // check if marker is visible
+                    if( markers[i] >= startIndex && markers[i] <= startIndex+length ) {
+                        int markX = markers[i]-startIndex+xOffset;
+                        int markY = ( -wave[markers[i]] / gain ) + yOffset;
+                        canvas.drawRect( markX-10, markY-10, markX+10, markY+10, paint);
+                        canvas.drawText( Integer.toString(i), markX+15, markY, paint );
+                    }
+                }
             }
         }
         else {

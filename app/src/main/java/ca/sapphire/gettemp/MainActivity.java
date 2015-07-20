@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     short[] tone;
     private short[] buffer = new short[bufSize];
+    int[] markers = new int[10];
 
     boolean loopedToneIsRunning = false;
     boolean measuring = false;
@@ -54,7 +55,8 @@ public class MainActivity extends AppCompatActivity {
         measureButton = (Button) findViewById(R.id.MeasureButton );
         measureButton.setText("Measure");
 
-        tone = MakeTone.makeBurstTone(900, 44100, 1.0);
+        tone = MakeTone.makeSplitTone(900, 44100, 1.0);
+//        tone = MakeTone.makeBurstTone(900, 44100, 1.0);
 //        Log.i(TAG, "\nMinBufferSize = " + AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT));
     }
 
@@ -127,8 +129,10 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             status = mRecorder.read(buffer, 0, bufSize);
             Log.i(TAG, "\nRecord read status = " + status);
-            splitCalculate();
+            splitRangeCalculate();
             rmsCalculate();
+//            burstCalculate();
+//stopMeasuring();
             mRecorder.startRecording();
             measureHandler.postDelayed( measureRunnable, 500 );
         }
@@ -138,8 +142,8 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, WaveViewActivity.class);
         intent.putExtra("wave", tone);
         intent.putExtra("mode", WaveView.STEREO_MODE);
+        intent.putExtra("markers", (String) null);
         startActivity(intent);
-
 
 //        calibrate();
     }
@@ -155,14 +159,84 @@ public class MainActivity extends AppCompatActivity {
     public void burstCalculate() {
         // Step 1: looks for silence of more than 2 wavelengths
         // Step 2: Scans to end of silence by looking for signal
-        // Step 3: Looks for first signal peak
-        // Step 4: Scans 3.5 wavelengths
-        // Step 5: Scans for zero cross - this will be the cross of the start of the third full wave
-        // Step 6: Read the next 16 A/B waveforms and RMS (may change this to 8)
-        // Step 7: Sort the RMS values
-        // Step 8: Toss away the highest and lowest one or two values
-        // Step 9: Average the remaining values.
+        // Step 3: Scan into first signal, get past noise etc.
+        // Step 4: Looks for first signal peak
+        // Step 5: Skips 3.5 wavelengths
+        // Step 6: Scans for zero cross - this will be the cross of the start of the third full wave
+        // Step 7: Read the next 16 A/B waveforms and RMS (may change this to 8)
+        // Step 8: Sort the RMS values
+        // Step 9: Toss away the highest and lowest one or two values
+        // Step 10: Average the remaining values.
 
+        double[] rmsA = new double[16];
+        double[] rmsB = new double[16];
+
+        int scan = 0;
+        markers[0] = scan;
+        Log.i( TAG, "Step length: " + buffer.length );
+
+
+        // Steps 1 and 2
+        int start;
+        do {
+            start = scan;
+            while (Math.abs(buffer[scan]) < 8192)
+                scan++;
+        } while ( (scan-start) < 98 );
+        Log.i( TAG, "Step 1,2: " + scan );
+        markers[1] = scan;
+
+        // Step 3
+        while( buffer[scan] < 2048 )
+            scan++;
+        Log.i( TAG, "Step 3: " + scan );
+        markers[3] = scan;
+
+        // Step 4
+        int level;
+        do {
+            level = buffer[scan++];
+        } while ( buffer[scan] >= level );
+        Log.i( TAG, "Step 4: " + scan );
+        markers[4] = scan;
+
+        // Step 5: 49 * 3.5 = 171
+        scan += 171;
+        Log.i( TAG, "Step 5: " + scan );
+        markers[5] = scan;
+
+        // Step 6
+        scan = zeroCross( buffer, scan, 75, 6 );
+        Log.i( TAG, "Step 6: " + scan );
+        markers[6] = scan;
+
+        // Step 7
+        for (int i = 0; i < 16; i++) {
+            rmsA[i] = rms( buffer, scan + 49*(i*2), 49 );
+            rmsB[i] = rms( buffer, scan + 49*(i*2+1), 49);
+            Log.i(TAG, "A:B  " + rmsA[i] + " : " + rmsB[i] );
+        }
+
+        // Step 8
+        bubbleSort( rmsA );
+        bubbleSort( rmsB );
+
+        // Step 9 & 10
+        double rA = 0, rB = 0;
+        for (int i = 4; i < 12; i++) {
+            rA += rmsA[i];
+            rB += rmsB[i];
+        }
+        rA /= 8;
+        rB /= 8;
+
+        value = (float) (rB/rA);
+
+        Log.i(TAG, "\nRMS A8:" + rA);
+        Log.i(TAG, "\nRMS B8:" + rB);
+        Log.i(TAG, "\nValue:" + value);
+
+        valueText.append("  RMS: " + value);
     }
 
         /**
@@ -196,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
 
         value = (float) (maxA-minA) / (float) (maxB-minB);
 //        value = (float) (maxA) / (float) (maxB);
-//        if (value < 1) value = 1 / value;
+        if (value > 1) value = 1 / value;
 
 //        float valb = (float) (minA) / (float) (minB);
 //        if (valb < 1) valb = 1 / valb;
@@ -212,7 +286,88 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void splitRangeCalculate() {
+        // start looking for a zero crossing at 200mS into the waveform.
+
+        int[] values = new int[8];
+        double value;
+        int scan = zeroCross( buffer, 8820, 75, 6 );
+
+        Log.i(TAG, "\nZero:" + scan);
+
+
+        for (int j = 0; j < 8; j++) {
+            int minA = Short.MAX_VALUE;
+            int maxA = Short.MIN_VALUE;
+            int minB = Short.MAX_VALUE;
+            int maxB = Short.MIN_VALUE;
+
+//todo: Replace magic numbers
+            // scan first 1kHz period for peaks.
+            for (int i = scan + j*49; i < scan + (j+1)*49; i++) {
+                minA = Math.min(minA, buffer[i]);
+                maxA = Math.max(maxA, buffer[i]);
+            }
+            values[j] = maxA-minA;
+        }
+
+        bubbleSort( values );
+
+        value = ((double)values[1]+(double)values[2]) / ((double)values[5]+(double)values[6]) ;
+
+//        valueText.append("\nVmax: " + value + "  Vmin: " + valb);
+        valueText.append("\nVal: " + value + " : " + 3300*(2*value-1));
+
+//        Log.i(TAG, "\nMaxA:" + maxA);
+//        Log.i(TAG, "\nMinA:" + minA);
+//        Log.i(TAG, "\nMaxB:" + maxB);
+//        Log.i(TAG, "\nMinB:" + minB);
+        Log.i(TAG, "\nValue:" + value);
+
+    }
+
     public void rmsCalculate() {
+        // start looking for a zero crossing at 100mS into the waveform.
+        // search 3 wavelengths to look for a good crossing
+        int scan = zeroCross( buffer, 4410, 49*3, 6 );
+
+        double[] rmsA = new double[16];
+        double[] rmsB = new double[16];
+//        rmsA = rms( buffer, scan, 49 );
+//        rmsB = rms( buffer, scan+49, 49 );
+//todo: Replace magic numbers
+
+        for (int i = 0; i < 16; i++) {
+            rmsA[i] = rms( buffer, scan + 49*(i*2), 49 );
+            rmsB[i] = rms( buffer, scan + 49*(i*2+1), 49);
+            Log.i(TAG, "A:B  " + rmsA[i] + " : " + rmsB[i] );
+        }
+
+        bubbleSort( rmsA );
+        bubbleSort( rmsB );
+
+        double rA = 0, rB = 0;
+
+        for (int i = 4; i < 12; i++) {
+            rA += rmsA[i];
+            rB += rmsB[i];
+        }
+
+        rA /= 8;
+        rB /= 8;
+
+        value = (float) (rB/rA);
+        if( value > 1 )
+            value = 1/value;
+
+        Log.i(TAG, "\nRMS A8:" + rA);
+        Log.i(TAG, "\nRMS B8:" + rB);
+        Log.i(TAG, "\nValue:" + value);
+
+        valueText.append("  RMS: " + value);
+    }
+
+    public void rmsTernaryCalculate() {
         // start looking for a zero crossing at 100mS into the waveform.
         // search 3 wavelengths to look for a good crossing
         int scan = zeroCross( buffer, 4410, 49*3, 6 );
@@ -303,6 +458,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, WaveViewActivity.class);
         intent.putExtra("wave", buffer);
         intent.putExtra("mode", WaveView.MONO_MODE);
+        intent.putExtra("markers", markers);
         startActivity(intent);
     }
 
