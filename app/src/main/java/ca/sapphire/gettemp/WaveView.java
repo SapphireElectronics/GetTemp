@@ -130,30 +130,22 @@ public class WaveView extends View {
         }
   }
 
-    public void autoRange( int height ) {
+    public void autoRange(int height) {
         short minX = 0, maxX = 0;
-        short element;
 
-        for (int i = 0; i < wave.length; i++) {
-            element = wave[i];
+        for (short element : wave) {
             maxX = element > maxX ? element : maxX;
             minX = element < minX ? element : minX;
         }
 
         autoRange = maxX > (-minX) ? maxX : -minX;
 
-        gain = autoRange > (height/2) ? autoRange / (height/2) : 1;
+        gain = autoRange > (height / 2) ? autoRange / (height / 2) : 1;
 
         hasBeenAutoranged = true;
 
-        Log.i( TAG, "Autorage: " + gain );
+        Log.i(TAG, "Autorange: " + gain);
     }
-
-    /**
-     *
-     * @param width
-     * @param height
-     */
 
     byte[] thumbnail;
 
@@ -171,7 +163,7 @@ public class WaveView extends View {
 
     public void drawThumbnail( Canvas canvas, int x, int y ) {
         for (int i = 1; i < thumbnail.length; i++) {
-            canvas.drawLine( x+i-1, y+thumbnail[i-1], x+i, y+thumbnail[i], paint );
+            canvas.drawLine( x+i-1, y-thumbnail[i-1], x+i, y-thumbnail[i], paint );
         }
     }
 
@@ -181,12 +173,12 @@ public class WaveView extends View {
         int y, newY;
 
         x = xOffset;
-        y = wave[startIndex]/gain + yOffset;
+        y = (-wave[startIndex]/gain) + yOffset;
 
         if( track == MONO_TRACK ) {
             for (int i = startIndex + 1; i < startIndex + length; i += zoom) {
                 newX = x + 1;
-                newY = (wave[i] / gain) + yOffset;
+                newY = (-wave[i] / gain) + yOffset;
                 canvas.drawLine(x, y, newX, newY, paint);
                 x = newX;
                 y = newY;
@@ -196,7 +188,7 @@ public class WaveView extends View {
             x += track;
             for (int i = startIndex + 2 + track; i < (startIndex+length)*2; i += zoom+zoom) {
                 newX = x + 1;
-                newY = (wave[i] / gain) + yOffset;
+                newY = (-wave[i] / gain) + yOffset;
                 canvas.drawLine(x, y, newX, newY, paint);
                 x = newX;
                 y = newY;
