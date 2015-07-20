@@ -151,6 +151,20 @@ public class MainActivity extends AppCompatActivity {
     int reference = 0;
     float value = 0;
 
+
+    public void burstCalculate() {
+        // Step 1: looks for silence of more than 2 wavelengths
+        // Step 2: Scans to end of silence by looking for signal
+        // Step 3: Looks for first signal peak
+        // Step 4: Scans 3.5 wavelengths
+        // Step 5: Scans for zero cross - this will be the cross of the start of the third full wave
+        // Step 6: Read the next 16 A/B waveforms and RMS (may change this to 8)
+        // Step 7: Sort the RMS values
+        // Step 8: Toss away the highest and lowest one or two values
+        // Step 9: Average the remaining values.
+
+    }
+
         /**
      * Calculates the current value using split tone.
      * Evaluates relative amplitudes of signals separately from LH and RH tones

@@ -126,7 +126,7 @@ public final class MakeTone {
         int waves = (int) (duration * frequency);
         waves = (waves/6) * 6;  // make waves a multiple of 6 so playing successive stereo waves is contiguous
 
-        short[] tone = new short[period * waves * 3];
+        short[] tone = new short[period * waves * 2];
 
         // first wave is Left Hand, second wave is RH
         // both are generated together by writing the LH values one full period later to RH
@@ -153,12 +153,17 @@ public final class MakeTone {
      * Generates a special purpose sine wave tone
      *
      * Generates a stereo sine wave tone at a given frequency, for a given sample rate,
-     * and for a given duration.  The tone alternates between LH and RH and silent.
+     * and for a given duration.  The tone alternates between LH and RH for 20 cycles
+     * then silent for 4 cycles for 24 cycles total
      *
      * The tone generated is in stereo.
      * The first complete waveform is LH only, the second complete waveform is RH only.
-     * The third complete waveform is silent.
+     * This is repeated for a total of 20 cycles.
+     * The next four complete waveforms are silent.
+     *
      * This is repeated for the duration of the tone.
+     *
+     * The silence is used as a marker to allow synchronization to the tone
      *
      * @param frequency     Frequency of generated tone
      * @param sampleRate    Sampling rate used when playing tone (typically use 44100)
@@ -170,9 +175,9 @@ public final class MakeTone {
 
         // number of wavelengths for a 'duration' length of tone frequency = duration * frequency
         int waves = (int) (duration * frequency);
-        waves = (waves/8) * 8;  // make waves a multiple of 6 so playing successive stereo waves is contiguous
+        waves = (waves/48) * 48;  // make waves a multiple of 6 so playing successive stereo waves is contiguous
 
-        short[] tone = new short[period * waves * 4];
+        short[] tone = new short[period * waves * 2];
 
         // first wave is Left Hand, second wave is RH
         // both are generated together by writing the LH values one full period later to RH
@@ -186,12 +191,20 @@ public final class MakeTone {
             tone[lh++] = 0;
         }
 
-        // next is a silent wavelength which we can ignore since defaults values are already 0.
-
-        // fill out rest of the array, leaving one wavelength blank
-        for (int i = 1; i < waves / 4; ++i) {
-            arraycopy(tone, 0, tone, i*period*8, period*8);
+        // repeat this 19 times for a total of 20 cycles in the burst
+        // fill out rest of the array, making copies of the two wave section
+        for (int i = 1; i < 20; ++i) {
+            arraycopy(tone, 0, tone, i*period*4, period*4);
         }
+
+        // four blank cycles are left implicitly since initialized array is 0.
+
+        // fill out rest of the array by copying the first 24 cycles
+        // (24*2*2 shorts since it's stereo)
+        for (int i = 1; i < waves/48; i++) {
+            arraycopy(tone, 0, tone, i*period*96, period*96);
+        }
+
         return tone;
     }
 }
