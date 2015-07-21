@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
 
         value = ((double)values[5]+(double)values[6]) / ((double)values[1]+(double)values[2]) ;
 
-        valueText.append("\nVal: " + String.format( "%.2f :  %.2f  :  %.1f'C", value, value*seriesResistorValue, value*Thermistor.temperature(value) ));
+        valueText.append("\nVal: " + String.format( "%.2f :  %.2f  :  %.1f'C", value, value*seriesResistorValue, Thermistor.temperature(value*seriesResistorValue) ));
         Log.i(TAG, "\nValue:" + value);
     }
 
