@@ -1,7 +1,5 @@
 package ca.sapphire.gettemp;
 
-import android.util.Log;
-
 /**
  * Converts between temperatures and resistance values
  */
@@ -27,7 +25,8 @@ public final class Thermistor {
         while( resistance < specification[index] )
             index++;
 
-        index--;
+        if( index > 0 )
+            index--;
 
         double slope = 5.0 / (specification[index+1]-specification[index]);
         double baseTemp = -40 + index*5;
